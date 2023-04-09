@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/quote", method="post">
+        <Lable>Type stock</Lable>
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="symbol" name="symbol" placeholder="Stock" type="text">
+        <button class="btn btn-primary" type="submit">lookup</button>
+    </form>
+{% endblock %}

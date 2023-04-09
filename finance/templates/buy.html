@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/buy", method="post">
+        <Lable>Buy route</Lable>
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="symbol" name="symbol" placeholder="Name of stock" type="text">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="shares" name="shares" placeholder="Number of shares" type="text">
+        <button class="btn btn-primary" type="submit">Buy</button>
+
+    </form>
+{% endblock %}
