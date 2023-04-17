@@ -1,8 +1,41 @@
 {% extends "layout.html" %}
 
 {% block main %}
-    <form action="/", method="post">
-        <Lable>{{ owned_cash }}$</Lable>
 
-    </form>
+
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col">Name</th>
+                <th scope="col">Shares</th>
+                <th scope="col">Price</th>
+                <th scope="col">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{row['symbol']}}</td>
+                    <td>{{row['name']}}</td>
+                    <td>{{row.shares}}</td>
+                    <td>{{row['price']}}</td>
+                    <td>{{row['total']}}</td>
+                </tr>
+            {% else %}
+                There are no any Stocks
+            {% endfor %}
+            <tr>
+                <td>Remaining Balance</td>
+                <td></td><td></td><td></td>
+                <td>${{owned_cash}}</td>
+            </tr>
+            <tr>
+                <td>In Total</td>
+                <td></td><td></td><td></td>
+                <td><b>${{total}}</b></td>
+            </tr>
+        </tbody>
+    </table>
 {% endblock %}

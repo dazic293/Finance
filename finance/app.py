@@ -47,7 +47,70 @@ def index():
     """Show portfolio of stocks"""
     money = db.execute("SELECT * FROM users WHERE id = ? ", session["user_id"])
     owned_cash = int(money[0]['cash'])
-    return render_template ("homepage.html", owned_cash=owned_cash)
+    rows = db.execute("SELECT * FROM purchase WHERE user_id = ?", session["user_id"])
+    total = owned_cash
+    for row in rows:
+        look = lookup(row['symbol'])
+        row['name'] = look['name']
+        row['price'] = look['price']
+        row['total'] = row['price'] * row['shares']
+
+        # increment sum
+        total += row['total']
+
+        # convert price and total to usd format
+        row['price'] = usd(row['price'])
+        row['total'] = usd(row['total'])
+
+
+    return render_template ("homepage.html", owned_cash=owned_cash, rows=rows, total=total)
+
+
+@app.route("/sell", methods=["GET", "POST"])
+@login_required
+def sell():
+    """Sell shares of stock"""
+    if request.method == "POST":
+        symbol = request.form.get("symbol").upper()
+        if not (query := lookup(symbol)):
+            return apology("INVALID SYMBOL")
+        # select row of the symbol in table purchase
+        if not symbol in query["symbol"]:
+            return apology("INVALID SYMBOL")
+        # compare to inpup
+        row = db.execute("SELECT shares FROM purchase WHERE user_id = ? AND symbol = ? ", session["user_id"], symbol)
+        rows = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
+        # load price mutiply by shares than substact from cash
+        cash = rows[0]["cash"]
+
+        if row:
+            shares = int(row[0]["shares"])
+        else:
+            return apology("Invalid")
+
+
+        sharess = int(request.form.get("shares"))
+        if sharess > shares:
+            return apology ("Sorry you dont have too much shares")
+
+        total = shares - sharess
+        if total == 0:
+            db.execute("DELETE FROM purchase WHERE user_id = ? AND symbol = ?", session["user_id"], symbol)
+
+        price = query["price"] * sharess
+        money = cash + price
+        db.execute("UPDATE users SET cash = ? WHERE id = ?", money, session["user_id"])
+        db.execute("UPDATE purchase SET shares = ? WHERE user_id = ? AND symbol = ?", total, session["user_id"], symbol)
+        db.execute("INSERT INTO history (user, symbol, shares, price, buy ) VALUES(?, ?, ?, ?, ?) ",session["user_id"], symbol, sharess, query["price"], False )
+
+        # select row of the shares in the table purchase
+
+        # caompare to input
+        # than lookup to price
+        flash("Sold!!!")
+        return render_template("sell.html", row=row)
+    else:
+        return render_template("sell.html")
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -57,11 +120,11 @@ def buy():
         # check symbol if it typed or not and check symbol if it exist or not
         if not request.form.get("symbol") or not lookup(request.form.get("symbol")) != None:
             return apology("wrong name" ,403)
-        symbol = request.form.get("symbol")
+        symbol = request.form.get("symbol").upper()
+        if not request.form.get("shares") or not int(request.form.get("shares")) > 0  :
+            return apology("less then 0",403)
         shares = int(request.form.get("shares"))
         # check shares
-        if not int(request.form.get("shares")) > 0:
-            return apology("less then 0",403)
         # select cash
         if not (query := lookup(symbol)):
             return apology("INVALID SYMBOL")
@@ -75,9 +138,10 @@ def buy():
             return apology("LOX NIE MA $$$")
         total = cash - total_prices
 
-        db.execute("INSERT INTO purchase (user_id, symbol, shares, price) VALUES (?, ? ,? ,?)",session["user_id"], request.form.get("symbol"), request.form.get("shares"), query["price"] )
+        db.execute("INSERT INTO purchase (user_id, symbol, shares, price) VALUES (?, ? ,? ,?)",session["user_id"], symbol, shares, query["price"] )
 
         db.execute("UPDATE users SET cash = ? WHERE id = ?", total, session["user_id"])
+        db.execute("INSERT INTO history (user, symbol, shares, price, buy ) VALUES(?, ?, ?, ?, ?) ",session["user_id"], symbol, shares, query["price"], True )
         flash("Bought!!!")
         return redirect ("/")
 
@@ -90,8 +154,11 @@ def buy():
 @app.route("/history")
 @login_required
 def history():
-    """Show history of transactions"""
-    return apology("TODO")
+
+    histories = db.execute("SELECT * FROM history WHERE user = ?",session["user_id"])
+   # if histories[0]["buy"] = True:
+    #    bou
+    return render_template("history.html", histories=histories)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -158,40 +225,23 @@ def register():
     """Register user"""
     if request.method == "POST":
         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
-        if not request.form.get("username"):
+        
+        username = request.form.get("username")
+        if not username:
             return apology("must provide username", 403)
         elif not request.form.get("password"):
             return apology("must provide password", 403)
-        if request.form.get("username") in rows:
+        if not request.form.get("rpassword") == request.form.get("password"):
+            return apology("Password not matched")
+        if username in rows:
             return apology("already registered", 403)
 
         password = generate_password_hash(request.form.get("password"), method='pbkdf2:sha256', salt_length=8)
 
-        db.execute("INSERT INTO users(username, hash) VALUES(?,?)", request.form.get("username"),password)
+        db.execute("INSERT INTO users(username, hash) VALUES(?,?)", username, password)
 
 
         return redirect("/login")
 
     else:
         return render_template("register.html")
-
-
-@app.route("/sell", methods=["GET", "POST"])
-@login_required
-def sell():
-    """Sell shares of stock"""
-    if request.method == "POST":
-
-        # select row of the symbol in table purchase
-        row = db.execute("SELECT symbol, sum(share) FROM purchase WHERE ")
-        # compare to inpup
-        if not request.form.get("symbol") in row(request.form.get("symbol")):
-            return apology ("wrong symbol")
-        # select row of the shares in the table purchase
-
-        # caompare to input
-        # than lookup to price
-
-        return render_template("sell.html", row=row)
-    else:
-        return render_template("sell.html")

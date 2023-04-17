@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col">Shares</th>
+                <th scope="col">Price</th>
+                <th scope="col">Time</th>
+                <th scope="col">Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for history in histories  %}
+                <tr>
+                    <td>{{history.symbol}}</td>
+                    <td>{{history.shares}}</td>
+                    <td>{{history.price}}</td>
+                    <td>{{history.transaction_time}}</td>
+                    {% if history.buy %}
+                        <td>Bought</td>
+                    {% else %}
+                        <td>Sold</td>
+                    {% endif %}
+                </tr>
+            {% else %}
+                <div>There are no records!!!</div>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
